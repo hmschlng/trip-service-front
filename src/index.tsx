@@ -29,8 +29,8 @@ root.render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <App />
+              <CssBaseline />
+              <App />
           </ThemeProvider>
         </BrowserRouter>
       </QueryClientProvider>

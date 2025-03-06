@@ -9,12 +9,11 @@ import {
   Chip,
   Typography
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers';
 
 interface PlanFormInputs {
   title: string;
-  startDate: Date;
-  endDate: Date;
+  startDate: string;
+  endDate: string;
   companions: string[];
   themes: string[];
   estimatedBudget: number;
@@ -25,7 +24,7 @@ const THEME_OPTIONS = [
 ];
 
 const PlanForm: React.FC = () => {
-  const { control, handleSubmit, watch, formState: { errors } } = useForm<PlanFormInputs>();
+  const { control, handleSubmit, formState: { errors } } = useForm<PlanFormInputs>();
 
   const onSubmit = (data: PlanFormInputs) => {
     console.log(data);
@@ -55,17 +54,14 @@ const PlanForm: React.FC = () => {
           control={control}
           rules={{ required: '시작일을 선택해주세요' }}
           render={({ field }) => (
-            <DatePicker
+            <TextField
+              {...field}
+              fullWidth
               label="시작일"
-              value={field.value}
-              onChange={field.onChange}
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  error: !!errors.startDate,
-                  helperText: errors.startDate?.message
-                }
-              }}
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              error={!!errors.startDate}
+              helperText={errors.startDate?.message}
             />
           )}
         />
@@ -75,17 +71,14 @@ const PlanForm: React.FC = () => {
           control={control}
           rules={{ required: '종료일을 선택해주세요' }}
           render={({ field }) => (
-            <DatePicker
+            <TextField
+              {...field}
+              fullWidth
               label="종료일"
-              value={field.value}
-              onChange={field.onChange}
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  error: !!errors.endDate,
-                  helperText: errors.endDate?.message
-                }
-              }}
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              error={!!errors.endDate}
+              helperText={errors.endDate?.message}
             />
           )}
         />
