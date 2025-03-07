@@ -1,5 +1,5 @@
 // src/components/member/LoginForm.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
@@ -7,30 +7,38 @@ import {
   TextField,
   Button,
   Typography,
-  Link
+  Link,
+  Alert
 } from '@mui/material';
-
-interface LoginFormInputs {
-  email: string;
-  password: string;
-}
+import memberApi, { LoginRequest } from '../../api/memberApi';
+import { useAuth } from '../../hooks/useAuth';
 
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInputs>();
+  const { login } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginRequest>();
 
-  const onSubmit = async (data: LoginFormInputs) => {
+  const onSubmit = async (data: LoginRequest) => {
     try {
-      // TODO: API 연동
-      console.log('Login data:', data);
+      setError(null);
+      const response = await memberApi.login(data);
+      const tokenResponse = response.data;
+      login(tokenResponse.accessToken, data.email);
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      setError(error.response?.data?.message || '로그인에 실패했습니다.');
     }
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 1 }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       <TextField
         margin="normal"
         required

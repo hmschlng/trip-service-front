@@ -4,17 +4,15 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RecoilRoot } from 'recoil';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
-import { theme } from './styles/theme';
-import './index.css';
+import './styles/index.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5분
     }
   }
 });
@@ -28,10 +26,7 @@ root.render(
     <RecoilRoot>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <ThemeProvider theme={theme}>
-              <CssBaseline />
-              <App />
-          </ThemeProvider>
+          <App />
         </BrowserRouter>
       </QueryClientProvider>
     </RecoilRoot>

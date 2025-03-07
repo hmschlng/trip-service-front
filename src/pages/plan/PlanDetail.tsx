@@ -1,5 +1,5 @@
 // src/pages/plan/PlanDetail.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, Tab, Tabs } from '@mui/material';
 import PageContainer from '../../components/common/PageContainer';
@@ -7,20 +7,40 @@ import PlanDetail from '../../components/plan/PlanDetail';
 import PlanTimeline from '../../components/plan/PlanTimeline';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
+import { useAuth } from '../../hooks/useAuth';
+import planApi, { PlanDetailResponse } from '../../api/planApi';
 
 const PlanDetailPage: React.FC = () => {
   const { planId } = useParams<{ planId: string }>();
-  const [value, setValue] = React.useState(0);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const { auth } = useAuth();
+  const [plan, setPlan] = useState<PlanDetailResponse | null>(null);
+  const [value, setValue] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    // TODO: API 연동
-    setIsLoading(false);
-  }, [planId]);
+  useEffect(() => {
+    const fetchPlanDetail = async () => {
+      if (!planId || !auth.userId) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await planApi.getPlanDetail(planId, auth.userId);
+        setPlan(response.data);
+      } catch (error: any) {
+        console.error('Error fetching plan details:', error);
+        setError(error.response?.data?.message || '여행 플랜 상세 정보를 불러오는 데 실패했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPlanDetail();
+  }, [planId, auth.userId]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
+  if (!plan) return <ErrorMessage message="여행 플랜 정보를 찾을 수 없습니다." />;
 
   return (
     <PageContainer>
@@ -33,32 +53,24 @@ const PlanDetailPage: React.FC = () => {
 
       {value === 0 && (
         <PlanDetail
-          title="제주도 여행"
-          startDate="2024-03-01"
-          endDate="2024-03-03"
-          companions={['friend@example.com']}
-          themes={['관광', '맛집']}
-          estimatedBudget={500000}
+          title={plan.title}
+          startDate={plan.startDate}
+          endDate={plan.endDate}
+          companions={plan.companions}
+          themes={plan.themes}
+          estimatedBudget={plan.estimatedBudget}
           onEditClick={() => console.log('Edit clicked')}
         />
       )}
 
       {value === 1 && (
         <PlanTimeline
-          items={[
-            {
-              date: '2024-03-01',
-              time: '10:00',
-              activity: '제주공항 도착',
-              location: '제주국제공항'
-            },
-            {
-              date: '2024-03-01',
-              time: '12:00',
-              activity: '점심 식사',
-              location: '제주 흑돼지 맛집'
-            }
-          ]}
+          items={(plan.timeline || []).map(item => ({
+            date: `${plan.startDate}`, // 또는 적절한 날짜 계산 로직
+            time: item.time || '',
+            activity: item.activity || '',
+            location: item.location || ''
+          }))}
         />
       )}
     </PageContainer>

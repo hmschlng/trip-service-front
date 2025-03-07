@@ -12,25 +12,35 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface WithdrawalRequest {
+  reason: string;
+}
+
 export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
 }
 
+export interface MemberResponse {
+  userId: string;
+  email: string;
+  name: string;
+}
+
 const memberApi = {
   signUp: (data: SignUpRequest) => 
-    axiosInstance.post('/api/members/signup', data),
+    axiosInstance.post<MemberResponse>('/members/signup', data),
 
   login: (data: LoginRequest) => 
-    axiosInstance.post<TokenResponse>('/api/auth/login', data),
+    axiosInstance.post<TokenResponse>('/auth/login', data),
 
-  withdraw: (userId: string, reason: string) => 
-    axiosInstance.delete(`/api/members/${userId}`, { 
-      data: { reason } 
+  withdraw: (userId: string, data: WithdrawalRequest) => 
+    axiosInstance.delete(`/members/${userId}`, { 
+      data 
     }),
 
   logout: () => 
-    axiosInstance.post('/api/auth/logout')
+    axiosInstance.post('/auth/logout')
 };
 
 export default memberApi;

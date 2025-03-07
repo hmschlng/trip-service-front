@@ -32,7 +32,7 @@ const PlanList: React.FC = () => {
         setError(null);
         if (auth.userId) {
           const response = await planApi.getMyPlans(auth.userId);
-          setPlans(response);
+          setPlans(response.data);
         }
       } catch (error: any) {
         console.error('Error fetching plans:', error);

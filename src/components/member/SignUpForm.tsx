@@ -1,5 +1,5 @@
 // src/components/member/SignUpForm.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
@@ -7,31 +7,34 @@ import {
   TextField,
   Button,
   Typography,
-  Link
+  Link,
+  Alert
 } from '@mui/material';
-
-interface SignUpFormInputs {
-  email: string;
-  password: string;
-  name: string;
-}
+import memberApi, { SignUpRequest } from '../../api/memberApi';
 
 const SignUpForm: React.FC = () => {
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors } } = useForm<SignUpFormInputs>();
+  const [error, setError] = useState<string | null>(null);
+  const { register, handleSubmit, formState: { errors } } = useForm<SignUpRequest>();
 
-  const onSubmit = async (data: SignUpFormInputs) => {
+  const onSubmit = async (data: SignUpRequest) => {
     try {
-      // TODO: API 연동
-      console.log('SignUp data:', data);
-      navigate('/login');
-    } catch (error) {
+      setError(null);
+      await memberApi.signUp(data);
+      navigate('/login', { state: { message: '회원가입이 완료되었습니다. 로그인해주세요.' } });
+    } catch (error: any) {
       console.error('SignUp error:', error);
+      setError(error.response?.data?.message || '회원가입에 실패했습니다.');
     }
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 1 }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       <TextField
         margin="normal"
         required

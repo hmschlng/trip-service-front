@@ -1,5 +1,6 @@
 // src/components/plan/PlanForm.tsx
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import {
   Box,
@@ -7,31 +8,68 @@ import {
   Button,
   Autocomplete,
   Chip,
-  Typography
+  Typography,
+  Alert,
+  CircularProgress
 } from '@mui/material';
-
-interface PlanFormInputs {
-  title: string;
-  startDate: string;
-  endDate: string;
-  companions: string[];
-  themes: string[];
-  estimatedBudget: number;
-}
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import planApi, { PlanCreateRequest } from '../../api/planApi';
+import { useAuth } from '../../hooks/useAuth';
 
 const THEME_OPTIONS = [
   '관광', '휴양', '맛집', '쇼핑', '액티비티', '문화예술', '자연'
 ];
 
 const PlanForm: React.FC = () => {
-  const { control, handleSubmit, formState: { errors } } = useForm<PlanFormInputs>();
+  const navigate = useNavigate();
+  const { auth } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { control, handleSubmit, formState: { errors } } = useForm<PlanCreateRequest>({
+    defaultValues: {
+      userId: auth.userId || '',
+      companions: [],
+      themes: [],
+    }
+  });
 
-  const onSubmit = (data: PlanFormInputs) => {
-    console.log(data);
+  const onSubmit = async (data: PlanCreateRequest) => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await planApi.createPlan(data);
+      navigate('/plans');
+    } catch (error: any) {
+      console.error('Error creating plan:', error);
+      setError(error.response?.data?.message || '여행 플랜 생성에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveDraft = async (data: PlanCreateRequest) => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await planApi.saveDraft(data);
+      navigate('/plans');
+    } catch (error: any) {
+      console.error('Error saving draft:', error);
+      setError(error.response?.data?.message || '임시저장에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 2 }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <Controller
         name="title"
         control={control}
@@ -54,14 +92,17 @@ const PlanForm: React.FC = () => {
           control={control}
           rules={{ required: '시작일을 선택해주세요' }}
           render={({ field }) => (
-            <TextField
-              {...field}
-              fullWidth
+            <DatePicker
               label="시작일"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              error={!!errors.startDate}
-              helperText={errors.startDate?.message}
+              value={field.value ? new Date(field.value) : null}
+              onChange={(date) => field.onChange(date?.toISOString().split('T')[0])}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  error: !!errors.startDate,
+                  helperText: errors.startDate?.message
+                }
+              }}
             />
           )}
         />
@@ -71,14 +112,17 @@ const PlanForm: React.FC = () => {
           control={control}
           rules={{ required: '종료일을 선택해주세요' }}
           render={({ field }) => (
-            <TextField
-              {...field}
-              fullWidth
+            <DatePicker
               label="종료일"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              error={!!errors.endDate}
-              helperText={errors.endDate?.message}
+              value={field.value ? new Date(field.value) : null}
+              onChange={(date) => field.onChange(date?.toISOString().split('T')[0])}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  error: !!errors.endDate,
+                  helperText: errors.endDate?.message
+                }
+              }}
             />
           )}
         />
@@ -87,7 +131,6 @@ const PlanForm: React.FC = () => {
       <Controller
         name="companions"
         control={control}
-        defaultValue={[]}
         render={({ field }) => (
           <Autocomplete
             multiple
@@ -118,7 +161,6 @@ const PlanForm: React.FC = () => {
       <Controller
         name="themes"
         control={control}
-        defaultValue={[]}
         rules={{ required: '여행 테마를 선택해주세요' }}
         render={({ field }) => (
           <Autocomplete
@@ -168,8 +210,20 @@ const PlanForm: React.FC = () => {
       />
 
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-        <Button variant="outlined">임시저장</Button>
-        <Button type="submit" variant="contained">저장</Button>
+        <Button 
+          variant="outlined" 
+          onClick={handleSubmit((data) => handleSaveDraft(data))}
+          disabled={isSubmitting}
+        >
+          임시저장
+        </Button>
+        <Button 
+          type="submit" 
+          variant="contained"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? <CircularProgress size={24} /> : '저장'}
+        </Button>
       </Box>
     </Box>
   );

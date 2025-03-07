@@ -1,12 +1,16 @@
 // src/components/common/LoadingSpinner.tsx
 import React from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 
 interface LoadingSpinnerProps {
   fullScreen?: boolean;
+  message?: string;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullScreen = false }) => {
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+  fullScreen = false, 
+  message = '로딩 중...' 
+}) => {
   if (fullScreen) {
     return (
       <Box
@@ -17,6 +21,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullScreen = false }) =
           width: '100%',
           height: '100%',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -24,6 +29,11 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullScreen = false }) =
         }}
       >
         <CircularProgress />
+        {message && (
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            {message}
+          </Typography>
+        )}
       </Box>
     );
   }
@@ -32,12 +42,18 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ fullScreen = false }) =
     <Box
       sx={{
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
         p: 4,
       }}
     >
       <CircularProgress />
+      {message && (
+        <Typography variant="body2" sx={{ mt: 2 }}>
+          {message}
+        </Typography>
+      )}
     </Box>
   );
 };
