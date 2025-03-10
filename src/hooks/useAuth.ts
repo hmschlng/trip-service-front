@@ -1,35 +1,47 @@
 // src/hooks/useAuth.ts
-import { useRecoilState } from 'recoil';
-import { authState } from '../recoil/auth';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { memberApi } from '../api';
 import { useSnackbar } from 'notistack';
 
+interface AuthState {
+  token: string | null;
+  userId: string | null;
+  isAuthenticated: boolean;
+}
+
 // useAuth 훅이 반환하는 타입을 명시적으로 정의
 interface UseAuthReturnType {
-  auth: {
-    token: string | null;
-    userId: string | null;
-    isAuthenticated: boolean;
-  };
+  auth: AuthState;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   checkAuth: () => Promise<boolean>;
 }
 
 export const useAuth = (): UseAuthReturnType => {
-  const [auth, setAuth] = useRecoilState(authState);
+  // Recoil 대신 useState 사용
+  const [auth, setAuth] = useState<AuthState>({
+    token: localStorage.getItem('token'),
+    userId: localStorage.getItem('userId'),
+    isAuthenticated: !!localStorage.getItem('token')
+  });
+  
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
+
+  // 컴포넌트 마운트 시 인증 상태 확인
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const response = await memberApi.login({ email, password });
       const { accessToken, refreshToken } = response.data.data;
       
-      // API 응답에서 userId를 받는다고 가정
-      // 실제로는 API가 userId를 제공하는 방식에 따라 조정이 필요
-      const userId = 'user-123'; // 테스트용 하드코딩 값
+      // 실제로는 토큰에서 userId를 추출하거나 API에서 받아와야 함
+      // 여기서는 테스트를 위해 email을 userId로 사용
+      const userId = email;
       
       localStorage.setItem('token', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
@@ -61,7 +73,6 @@ export const useAuth = (): UseAuthReturnType => {
     const userId = localStorage.getItem('userId');
     
     if (token && userId) {
-      // 간단히 토큰과 userId가 있으면 인증된 것으로 간주
       setAuth({ token, userId, isAuthenticated: true });
       return true;
     }

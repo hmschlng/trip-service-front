@@ -1,5 +1,5 @@
 // src/components/common/ProtectedRoute.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from './LoadingSpinner';
@@ -9,17 +9,14 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { auth, checkAuth } = useAuth();
+  const { auth } = useAuth();
   const location = useLocation();
-  const [isChecking, setIsChecking] = React.useState(true);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const verify = async () => {
-      await checkAuth();
-      setIsChecking(false);
-    };
-    verify();
-  }, [checkAuth]);
+    // 이미 로컬 스토리지에서 토큰 확인이 완료된 상태라면 추가 검사 불필요
+    setIsChecking(false);
+  }, []);
 
   if (isChecking) {
     return <LoadingSpinner />;

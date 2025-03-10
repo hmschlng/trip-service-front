@@ -7,11 +7,14 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
+// 초기 상태 설정
+const initialState: AuthState = {
+  token: localStorage.getItem('token'),
+  userId: localStorage.getItem('userId'),
+  isAuthenticated: !!localStorage.getItem('token')
+};
+
 export const authState = atom<AuthState>({
   key: 'authState',
-  default: {
-    token: localStorage.getItem('token'),
-    userId: localStorage.getItem('userId'),
-    isAuthenticated: !!localStorage.getItem('token')
-  }
+  default: initialState
 });
