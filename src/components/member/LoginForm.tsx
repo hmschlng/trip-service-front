@@ -1,6 +1,6 @@
 // src/components/member/LoginForm.tsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
   Box,
@@ -8,37 +8,41 @@ import {
   Button,
   Typography,
   Link,
-  Alert
+  CircularProgress
 } from '@mui/material';
-import memberApi, { LoginRequest } from '../../api/memberApi';
 import { useAuth } from '../../hooks/useAuth';
+
+interface LoginFormInputs {
+  email: string;
+  password: string;
+}
 
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
-  const [error, setError] = useState<string | null>(null);
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginRequest>();
+  const [isLoading, setIsLoading] = React.useState(false);
+  
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInputs>();
 
-  const onSubmit = async (data: LoginRequest) => {
+  const onSubmit = async (data: LoginFormInputs) => {
+    setIsLoading(true);
     try {
-      setError(null);
-      const response = await memberApi.login(data);
-      const tokenResponse = response.data;
-      login(tokenResponse.accessToken, data.email);
-      navigate('/');
-    } catch (error: any) {
+      const success = await login(data.email, data.password);
+      if (success) {
+        // 로그인 성공 시 원래 가려던 경로 또는 홈으로 이동
+        const from = location.state?.from?.pathname || '/';
+        navigate(from, { replace: true });
+      }
+    } catch (error) {
       console.error('Login error:', error);
-      setError(error.response?.data?.message || '로그인에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 1 }}>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
       <TextField
         margin="normal"
         required
@@ -47,6 +51,7 @@ const LoginForm: React.FC = () => {
         label="이메일"
         autoComplete="email"
         autoFocus
+        disabled={isLoading}
         {...register('email', {
           required: '이메일을 입력해주세요',
           pattern: {
@@ -65,6 +70,7 @@ const LoginForm: React.FC = () => {
         type="password"
         id="password"
         autoComplete="current-password"
+        disabled={isLoading}
         {...register('password', {
           required: '비밀번호를 입력해주세요',
           minLength: {
@@ -80,14 +86,16 @@ const LoginForm: React.FC = () => {
         fullWidth
         variant="contained"
         sx={{ mt: 3, mb: 2 }}
+        disabled={isLoading}
       >
-        로그인
+        {isLoading ? <CircularProgress size={24} /> : '로그인'}
       </Button>
       <Box sx={{ textAlign: 'center' }}>
         <Link
           component="button"
           variant="body2"
           onClick={() => navigate('/signup')}
+          disabled={isLoading}
         >
           계정이 없으신가요? 회원가입
         </Link>

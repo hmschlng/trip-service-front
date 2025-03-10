@@ -34,7 +34,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
               {place.name}
             </Typography>
             <Chip
-              label={`${place.matchingRate}% 일치`}
+              label={`${place.matchingPercentage}% 일치`}
               color="primary"
               size="small"
             />
@@ -42,16 +42,6 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
           <Typography variant="body2" color="text.secondary">
             {place.description}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
-            {place.activities.slice(0, 3).map((activity) => (
-              <Chip
-                key={activity}
-                label={activity}
-                size="small"
-                variant="outlined"
-              />
-            ))}
-          </Box>
         </CardContent>
       </CardActionArea>
     </Card>

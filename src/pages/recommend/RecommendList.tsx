@@ -2,156 +2,203 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  TextField,
+  InputAdornment,
   Grid,
-  Typography,
-  CircularProgress,
-  Button
+  Typography
 } from '@mui/material';
+import { Search as SearchIcon } from '@mui/icons-material';
 import PageContainer from '../../components/common/PageContainer';
-import KeywordSearch from '../../components/recommend/KeywordSearch';
-import CategoryFilter from '../../components/recommend/CategoryFilter';
-import PlaceCard from '../../components/recommend/PlaceCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import ErrorMessage from '../../components/common/ErrorMessage';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
-import { useAuth } from '../../hooks/useAuth';
-import recommendApi, { PlaceListResponse } from '../../api/recommendApi';
+import { PlaceResponse, recommendApi } from '../../api';
+import PlaceCard from '../../components/recommend/PlaceCard';
+import { useSnackbar } from 'notistack';
+import { extractResponseData, extractErrorMessage } from '../../utils/apiUtils';
 
 const RecommendList: React.FC = () => {
-  const { auth } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [keyword, setKeyword] = useState('');
-  const [places, setPlaces] = useState<PlaceListResponse[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [searchedKeyword, setSearchedKeyword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [offset, setOffset] = useState(0);
-  const limit = 5;
-
-  useEffect(() => {
-    if (keyword) {
-      searchPlaces(keyword);
-    }
-  }, [selectedCategories]);
-
-  const searchPlaces = async (searchKeyword: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      setKeyword(searchKeyword);
-      setOffset(0);
-      
-      const response = await recommendApi.getRecommendedPlaces(searchKeyword, auth.userId || undefined);
-      
-      // 카테고리 필터링 적용 (필요한 경우)
-      let filteredPlaces = response;
-      if (selectedCategories.length > 0) {
-        filteredPlaces = response.filter(place => 
-          selectedCategories.includes(place.category)
-        );
-      }
-      
-      setPlaces(filteredPlaces);
-    } catch (error: any) {
-      console.error('Error searching places:', error);
-      setError(error.response?.data?.message || '추천 여행지를 불러오는 데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadMorePlaces = async () => {
-    if (isLoadingMore || !keyword) return;
+  const [places, setPlaces] = useState<PlaceResponse[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  
+  const searchPlaces = async () => {
+    if (!keyword.trim()) return;
     
     try {
-      setIsLoadingMore(true);
-      const newOffset = offset + limit;
+      setIsLoading(true);
+      setSearchedKeyword(keyword);
+      const userId = localStorage.getItem('userId');
       
-      const response = await recommendApi.getMoreRecommendedPlaces(
-        keyword, 
-        newOffset, 
-        limit, 
-        auth.userId || undefined
-      );
-      
-      // 카테고리 필터링 적용 (필요한 경우)
-      let filteredPlaces = response;
-      if (selectedCategories.length > 0) {
-        filteredPlaces = response.filter(place => 
-          selectedCategories.includes(place.category)
-        );
-      }
-      
-      setPlaces(prev => [...prev, ...filteredPlaces]);
-      setOffset(newOffset);
-    } catch (error: any) {
-      console.error('Error loading more places:', error);
-    } finally {
-      setIsLoadingMore(false);
+      const response = await recommendApi.getRecommendedPlaces(keyword, userId || undefined);
+      setPlaces(response.data.data || []);
+      setPage(0);
+      setHasMore(true);
+    } catch (error) {
+      console.error('Search error:', error);
+      enqueueSnackbar('여행지 검색에 실패했습니다.', { variant: 'error' });
+} finally {
+  setIsLoading(false);
+}
+};
+
+const loadMore = async () => {
+if (!searchedKeyword || !hasMore || isLoading) return;
+
+try {
+  setIsLoading(true);
+  const nextPage = page + 1;
+  const userId = localStorage.getItem('userId');
+  
+  const response = await recommendApi.getMoreRecommendedPlaces(
+    searchedKeyword, 
+    nextPage * 5, 
+    5, 
+    userId || undefined
+  );
+  
+  const newPlaces = response.data.data || [];
+  if (newPlaces.length === 0) {
+    setHasMore(false);
+  } else {
+    setPlaces(prev => [...prev, ...newPlaces]);
+    setPage(nextPage);
+  }
+} catch (error) {
+  console.error('Load more error:', error);
+  enqueueSnackbar('추가 여행지 로딩에 실패했습니다.', { variant: 'error' });
+} finally {
+  setIsLoading(false);
+}
+};
+
+// 인기 키워드 및 추천 키워드 로딩
+const [popularKeywords, setPopularKeywords] = useState<string[]>([]);
+const [recommendedKeywords, setRecommendedKeywords] = useState<string[]>([]);
+
+useEffect(() => {
+  const fetchKeywords = async () => {
+    try {
+      const response = await recommendApi.getKeywords();
+      const keywordsData = extractResponseData(response);
+      setPopularKeywords(keywordsData.popularKeywords || []);
+      setRecommendedKeywords(keywordsData.recommendedKeywords || []);
+    } catch (error) {
+      console.error('Fetch keywords error:', error);
     }
   };
 
-  const handleCategorySelect = (categoryId: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  };
+fetchKeywords();
+}, []);
 
-  const observerRef = useInfiniteScroll({
-    onIntersect: loadMorePlaces,
-    enabled: !isLoadingMore && places.length > 0
-  });
+const handleKeyPress = (e: React.KeyboardEvent) => {
+if (e.key === 'Enter') {
+  searchPlaces();
+}
+};
 
-  return (
-    <PageContainer>
-      <Box sx={{ mb: 3 }}>
-        <KeywordSearch onSearch={searchPlaces} />
+const observerRef = useInfiniteScroll({
+onIntersect: loadMore,
+enabled: !isLoading && hasMore && places.length > 0
+});
+
+return (
+<PageContainer>
+  <Box sx={{ mb: 3 }}>
+    <TextField
+      fullWidth
+      placeholder="여행지 검색"
+      value={keyword}
+      onChange={(e) => setKeyword(e.target.value)}
+      onKeyPress={handleKeyPress}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Box>
+
+  {!searchedKeyword && (
+    <Box sx={{ mb: 3 }}>
+      <Typography variant="subtitle1" gutterBottom>인기 검색어</Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        {popularKeywords.map((kw, index) => (
+          <Box 
+            key={index}
+            sx={{ 
+              px: 2, 
+              py: 0.5, 
+              bgcolor: 'primary.light', 
+              color: 'white',
+              borderRadius: 4,
+              cursor: 'pointer'
+            }}
+            onClick={() => {
+              setKeyword(kw);
+              setSearchedKeyword(kw);
+              searchPlaces();
+            }}
+          >
+            {kw}
+          </Box>
+        ))}
       </Box>
+      
+      <Typography variant="subtitle1" sx={{ mt: 2 }} gutterBottom>추천 검색어</Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        {recommendedKeywords.map((kw, index) => (
+          <Box 
+            key={index}
+            sx={{ 
+              px: 2, 
+              py: 0.5, 
+              bgcolor: 'secondary.light', 
+              color: 'white',
+              borderRadius: 4,
+              cursor: 'pointer'
+            }}
+            onClick={() => {
+              setKeyword(kw);
+              setSearchedKeyword(kw);
+              searchPlaces();
+            }}
+          >
+            {kw}
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  )}
 
-      {keyword && (
-        <CategoryFilter
-          selectedCategories={selectedCategories}
-          onSelectCategory={handleCategorySelect}
-        />
-      )}
+  {searchedKeyword && (
+    <Typography variant="subtitle1" gutterBottom>
+      '{searchedKeyword}' 검색 결과
+    </Typography>
+  )}
 
-      {isLoading ? (
-        <LoadingSpinner />
-      ) : error ? (
-        <ErrorMessage message={error} />
-      ) : places.length > 0 ? (
-        <>
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            {places.map((place) => (
-              <Grid item xs={12} sm={6} key={place.placeId}>
-                <PlaceCard place={place} />
-              </Grid>
-            ))}
-          </Grid>
-          
-          {isLoadingMore && <Box sx={{ textAlign: 'center', my: 2 }}><CircularProgress /></Box>}
-          <div ref={observerRef} />
-          
-          {places.length >= 5 && !isLoadingMore && (
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
-              <Button
-                variant="outlined"
-                onClick={loadMorePlaces}
-              >
-                더 보기
-              </Button>
-            </Box>
-          )}
-        </>
-      ) : keyword ? (
-        <Typography variant="body1" sx={{ textAlign: 'center', my: 4 }}>
-          검색 결과가 없습니다. 다른 키워드로 검색해보세요.
-        </Typography>
-      ) : null}
-    </PageContainer>
-  );
+  <Grid container spacing={2}>
+    {places.map((place) => (
+      <Grid item xs={12} sm={6} key={place.placeId}>
+        <PlaceCard place={place} />
+      </Grid>
+    ))}
+  </Grid>
+
+  {isLoading && <LoadingSpinner />}
+  {places.length === 0 && searchedKeyword && !isLoading && (
+    <Typography variant="body1" sx={{ textAlign: 'center', my: 4 }}>
+      검색 결과가 없습니다. 다른 키워드로 검색해보세요.
+    </Typography>
+  )}
+  <div ref={observerRef} />
+</PageContainer>
+);
 };
 
 export default RecommendList;

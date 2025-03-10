@@ -1,22 +1,24 @@
 // src/pages/plan/PlanDetail.tsx
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Box, Tab, Tabs } from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Tab, Tabs, Typography } from '@mui/material';
 import PageContainer from '../../components/common/PageContainer';
 import PlanDetail from '../../components/plan/PlanDetail';
 import PlanTimeline from '../../components/plan/PlanTimeline';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
 import { useAuth } from '../../hooks/useAuth';
-import planApi, { PlanDetailResponse } from '../../api/planApi';
+import planApi, { PlanResponse } from '../../api/planApi';
+import { extractResponseData, extractErrorMessage } from '../../utils/apiUtils';
 
 const PlanDetailPage: React.FC = () => {
   const { planId } = useParams<{ planId: string }>();
+  const navigate = useNavigate();
   const { auth } = useAuth();
-  const [plan, setPlan] = useState<PlanDetailResponse | null>(null);
-  const [value, setValue] = useState(0);
+  const [value, setValue] = React.useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [plan, setPlan] = useState<PlanResponse | null>(null);
 
   useEffect(() => {
     const fetchPlanDetail = async () => {
@@ -25,11 +27,11 @@ const PlanDetailPage: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await planApi.getPlanDetail(planId, auth.userId);
-        setPlan(response.data);
+        const response = await planApi.getPlan(planId, auth.userId);
+        setPlan(extractResponseData(response));
       } catch (error: any) {
         console.error('Error fetching plan details:', error);
-        setError(error.response?.data?.message || '여행 플랜 상세 정보를 불러오는 데 실패했습니다.');
+        setError(extractErrorMessage(error));
       } finally {
         setIsLoading(false);
       }
@@ -40,7 +42,7 @@ const PlanDetailPage: React.FC = () => {
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
-  if (!plan) return <ErrorMessage message="여행 플랜 정보를 찾을 수 없습니다." />;
+  if (!plan) return <ErrorMessage message="여행 플랜 정보가 없습니다." />;
 
   return (
     <PageContainer>
@@ -56,10 +58,10 @@ const PlanDetailPage: React.FC = () => {
           title={plan.title}
           startDate={plan.startDate}
           endDate={plan.endDate}
-          companions={plan.companions}
-          themes={plan.themes}
-          estimatedBudget={plan.estimatedBudget}
-          onEditClick={() => console.log('Edit clicked')}
+          companions={plan.companions || []}
+          themes={plan.themes || []}
+          estimatedBudget={Number(plan.estimatedBudget) || 0}
+          onEditClick={() => navigate(`/plans/edit/${planId}`)}
         />
       )}
 

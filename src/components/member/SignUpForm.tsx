@@ -8,23 +8,42 @@ import {
   Button,
   Typography,
   Link,
+  CircularProgress,
   Alert
 } from '@mui/material';
-import memberApi, { SignUpRequest } from '../../api/memberApi';
+import { memberApi } from '../../api';
+import { extractResponseData, extractErrorMessage } from '../../utils/apiUtils';
+
+interface SignUpFormInputs {
+  email: string;
+  password: string;
+  name: string;
+}
 
 const SignUpForm: React.FC = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { register, handleSubmit, formState: { errors } } = useForm<SignUpRequest>();
+  
+  const { register, handleSubmit, formState: { errors } } = useForm<SignUpFormInputs>();
 
-  const onSubmit = async (data: SignUpRequest) => {
+  const onSubmit = async (data: SignUpFormInputs) => {
     try {
+      setIsLoading(true);
       setError(null);
-      await memberApi.signUp(data);
-      navigate('/login', { state: { message: '회원가입이 완료되었습니다. 로그인해주세요.' } });
+      
+      const response = await memberApi.signUp(data);
+      
+      // 응답에서 데이터 추출
+      extractResponseData(response);
+      
+      // 회원가입 성공 처리
+      navigate('/login', { state: { successMessage: '회원가입이 성공적으로 완료되었습니다. 로그인해주세요.' } });
     } catch (error: any) {
       console.error('SignUp error:', error);
-      setError(error.response?.data?.message || '회원가입에 실패했습니다.');
+      setError(extractErrorMessage(error));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -35,6 +54,7 @@ const SignUpForm: React.FC = () => {
           {error}
         </Alert>
       )}
+      
       <TextField
         margin="normal"
         required
@@ -91,8 +111,9 @@ const SignUpForm: React.FC = () => {
         fullWidth
         variant="contained"
         sx={{ mt: 3, mb: 2 }}
+        disabled={isLoading}
       >
-        회원가입
+        {isLoading ? <CircularProgress size={24} /> : '회원가입'}
       </Button>
       <Box sx={{ textAlign: 'center' }}>
         <Link

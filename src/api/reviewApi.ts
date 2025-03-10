@@ -1,5 +1,6 @@
 // src/api/reviewApi.ts
 import axiosInstance from './axiosInstance';
+import { ApiResponse } from '../types/api';
 
 export interface ReviewCreateRequest {
   planId: string;
@@ -10,65 +11,53 @@ export interface ReviewCreateRequest {
   locationInfo: Record<string, string>;
 }
 
-export interface ReviewUpdateRequest {
-  userId: string;
-  title?: string;
-  content?: string;
-  imageUrls?: string[];
-  locationInfo?: Record<string, string>;
-}
-
 export interface ReviewResponse {
   reviewId: string;
-  title: string;
-}
-
-export interface ReviewListResponse {
-  reviewId: string;
-  title: string;
-  createdAt: string;
-}
-
-export interface ReviewDetailResponse {
-  reviewId: string;
+  planId: string;
+  userId: string;
   title: string;
   content: string;
-  images: string[];
-  location: Record<string, string>;
+  images?: string[];
+  imageUrls?: string[];
+  locationInfo: Record<string, string>;
+  createdAt: string;
 }
 
 const reviewApi = {
   getReviewByPlan: (planId: string) => 
-    axiosInstance.get<ReviewDetailResponse>(`/reviews/plan/${planId}`),
+    axiosInstance.get<ApiResponse<ReviewResponse>>(`/reviews/plan/${planId}`),
 
   getMyReviews: (userId: string) => 
-    axiosInstance.get<ReviewListResponse[]>(`/reviews/my-reviews?userId=${userId}`),
+    axiosInstance.get<ApiResponse<ReviewResponse[]>>(`/reviews/my-reviews?userId=${userId}`),
 
+  getReview: (reviewId: string) => 
+    axiosInstance.get<ApiResponse<ReviewResponse>>(`/reviews/${reviewId}`),
+    
   getReviewDetail: (reviewId: string) => 
-    axiosInstance.get<ReviewDetailResponse>(`/reviews/${reviewId}`),
+    axiosInstance.get<ApiResponse<ReviewResponse>>(`/reviews/${reviewId}`),
 
   createReview: (data: ReviewCreateRequest) => 
-    axiosInstance.post<ReviewResponse>('/reviews', data),
+    axiosInstance.post<ApiResponse<ReviewResponse>>('/reviews', data),
 
-  updateReview: (reviewId: string, data: ReviewUpdateRequest) => 
-    axiosInstance.put<ReviewResponse>(`/reviews/${reviewId}`, data),
+  updateReview: (reviewId: string, data: ReviewCreateRequest) => 
+    axiosInstance.put<ApiResponse<ReviewResponse>>(`/reviews/${reviewId}`, data),
 
   deleteReview: (reviewId: string) => 
-    axiosInstance.delete(`/reviews/${reviewId}`),
+    axiosInstance.delete<ApiResponse<void>>(`/reviews/${reviewId}`),
 
-  uploadImage: (file: FormData) => 
-    axiosInstance.post<string>('/images', file, {
+  uploadImages: (file: FormData) => 
+    axiosInstance.post<ApiResponse<string[]>>('/images', file, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     }),
     
   uploadMultipleImages: (files: FormData) => 
-    axiosInstance.post<string[]>('/images/multiple', files, {
+    axiosInstance.post<ApiResponse<string[]>>('/images/multiple', files, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    })
+    }).then(response => response.data.data)
 };
 
 export default reviewApi;

@@ -1,43 +1,18 @@
 // src/api/planApi.ts
 import axiosInstance from './axiosInstance';
+import { ApiResponse } from '../types/api';
 
 export interface PlanCreateRequest {
-  userId: string;
   title: string;
   startDate: string;
   endDate: string;
   companions: string[];
   themes: string[];
   estimatedBudget: number;
-}
-
-export interface PlanUpdateRequest extends PlanCreateRequest {
-  status?: string;
+  userId: string;
 }
 
 export interface PlanResponse {
-  planId: string;
-  title: string;
-}
-
-export interface PlanListResponse {
-  planId: string;
-  title: string;
-  startDate: string;
-  endDate: string;
-  themes: string[];
-  createdAt: string;
-}
-
-export interface TimelineItem {
-  dayNumber: number;
-  time: string;
-  activity: string;
-  location: string;
-  note: string;
-}
-
-export interface PlanDetailResponse {
   planId: string;
   title: string;
   startDate: string;
@@ -46,26 +21,37 @@ export interface PlanDetailResponse {
   themes: string[];
   estimatedBudget: number;
   timeline: TimelineItem[];
+  createdAt: string;
+}
+
+export interface TimelineItem {
+  dayNumber?: number;
+  date?: string;
+  time?: string;
+  activity?: string;
+  location?: string;
+  note?: string;
+  dailyBudget?: number;
 }
 
 const planApi = {
   getMyPlans: (userId: string) => 
-    axiosInstance.get<PlanListResponse[]>(`/plans/my-plans?userId=${userId}`),
+    axiosInstance.get<ApiResponse<PlanResponse[]>>(`/plans/my-plans?userId=${userId}`),
 
+  getPlan: (planId: string, userId: string) => 
+    axiosInstance.get<ApiResponse<PlanResponse>>(`/plans/${planId}?userId=${userId}`),
+    
   getPlanDetail: (planId: string, userId: string) => 
-    axiosInstance.get<PlanDetailResponse>(`/plans/${planId}?userId=${userId}`),
+    axiosInstance.get<ApiResponse<PlanResponse>>(`/plans/${planId}?userId=${userId}`),
 
   createPlan: (data: PlanCreateRequest) => 
-    axiosInstance.post<PlanResponse>('/plans', data),
+    axiosInstance.post<ApiResponse<PlanResponse>>('/plans', data),
 
-  updatePlan: (planId: string, data: PlanUpdateRequest) => 
-    axiosInstance.put<PlanResponse>(`/plans/${planId}`, data),
+  updatePlan: (planId: string, data: PlanCreateRequest) => 
+    axiosInstance.put<ApiResponse<PlanResponse>>(`/plans/${planId}`, data),
 
   deletePlan: (planId: string) => 
-    axiosInstance.delete(`/plans/${planId}`),
-    
-  saveDraft: (data: PlanCreateRequest) => 
-    axiosInstance.post<PlanResponse>('/plans/draft', data)
+    axiosInstance.delete<ApiResponse<void>>(`/plans/${planId}`)
 };
 
 export default planApi;

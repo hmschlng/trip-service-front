@@ -10,8 +10,9 @@ import {
   ImageList,
   ImageListItem,
   Paper,
-  CircularProgress,
-  Alert
+  Autocomplete,
+  Chip,
+  CircularProgress
 } from '@mui/material';
 import {
   AddPhotoAlternate,
@@ -20,121 +21,91 @@ import {
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import PageContainer from '../../components/common/PageContainer';
-import { useAuth } from '../../hooks/useAuth';
-import reviewApi, { ReviewCreateRequest } from '../../api/reviewApi';
+import { reviewApi } from '../../api';
+import { useSnackbar } from 'notistack';
 
 interface ReviewFormData {
-  planId: string;
   title: string;
   content: string;
-  locationName: string;
+  planId: string;
+  location: string;
 }
 
 const ReviewCreate: React.FC = () => {
   const navigate = useNavigate();
-  const { auth } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [images, setImages] = useState<File[]>([]);
-  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { control, handleSubmit, formState: { errors } } = useForm<ReviewFormData>();
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
       const newImages = Array.from(files);
       setImages(prev => [...prev, ...newImages]);
+      
+      // 이미지 업로드 API 호출
+      try {
+        const formData = new FormData();
+        newImages.forEach(file => {
+          formData.append('files', file);
+        });
+        
+        const urls = await reviewApi.uploadMultipleImages(formData);
+        setImageUrls(prev => [...prev, ...urls]);
+      } catch (error) {
+        console.error('Image upload error:', error);
+        enqueueSnackbar('이미지 업로드에 실패했습니다.', { variant: 'error' });
+      }
     }
   };
 
   const handleRemoveImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadImages = async (): Promise<string[]> => {
-    if (images.length === 0) return [];
-    
-    const formData = new FormData();
-    images.forEach(file => {
-      formData.append('files', file);
-    });
-    
-    try {
-      const urls = await reviewApi.uploadMultipleImages(formData);
-      setUploadedImageUrls(urls);
-      return urls;
-    } catch (error) {
-      console.error('Image upload failed:', error);
-      throw new Error('이미지 업로드에 실패했습니다.');
-    }
+    setImageUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const onSubmit = async (data: ReviewFormData) => {
-    if (!auth.userId) {
-      setError('로그인이 필요합니다.');
-      return;
-    }
-    
     try {
-      setIsSubmitting(true);
-      setError(null);
-      
-      // 이미지 업로드
-      let imageUrls: string[] = [];
-      if (images.length > 0) {
-        imageUrls = await uploadImages();
+      setIsLoading(true);
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        enqueueSnackbar('로그인이 필요합니다.', { variant: 'warning' });
+        navigate('/login');
+        return;
       }
       
-      // 후기 생성 요청 데이터 구성
-      const reviewData: ReviewCreateRequest = {
+      // 위치 정보 객체 생성
+      const locationInfo: Record<string, string> = {
+        name: data.location
+      };
+      
+      const reviewData = {
         planId: data.planId,
-        userId: auth.userId,
+        userId,
         title: data.title,
         content: data.content,
         imageUrls: imageUrls,
-        locationInfo: {
-          name: data.locationName
-        }
+        locationInfo
       };
       
-      await reviewApi.createReview(reviewData);
+      const response = await reviewApi.createReview(reviewData);
+      enqueueSnackbar('여행 후기가 성공적으로 등록되었습니다!', { variant: 'success' });
       navigate('/reviews');
-    } catch (error: any) {
-      console.error('Error creating review:', error);
-      setError(error.response?.data?.message || '후기 등록에 실패했습니다.');
+    } catch (error) {
+      console.error('Review creation error:', error);
+      enqueueSnackbar('여행 후기 등록에 실패했습니다.', { variant: 'error' });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <PageContainer>
       <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        <Controller
-          name="planId"
-          control={control}
-          rules={{ required: '여행 플랜을 선택해주세요' }}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              fullWidth
-              label="여행 플랜 ID"
-              placeholder="여행 플랜 ID를 입력하세요"
-              error={!!errors.planId}
-              helperText={errors.planId?.message}
-              sx={{ mb: 3 }}
-            />
-          )}
-        />
-
         <Controller
           name="title"
           control={control}
@@ -151,7 +122,23 @@ const ReviewCreate: React.FC = () => {
           )}
         />
 
-        <Paper sx={{ p: 2, mb: 3, mt: 3 }}>
+        <Controller
+          name="planId"
+          control={control}
+          rules={{ required: '연결할 여행 플랜을 선택해주세요' }}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              fullWidth
+              label="여행 플랜 ID"
+              error={!!errors.planId}
+              helperText={errors.planId?.message}
+              sx={{ mb: 3 }}
+            />
+          )}
+        />
+
+        <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="subtitle1" gutterBottom>
             사진 추가
           </Typography>
@@ -204,7 +191,7 @@ const ReviewCreate: React.FC = () => {
         </Paper>
 
         <Controller
-          name="locationName"
+          name="location"
           control={control}
           rules={{ required: '방문 장소를 입력해주세요' }}
           render={({ field }) => (
@@ -215,8 +202,8 @@ const ReviewCreate: React.FC = () => {
               InputProps={{
                 startAdornment: <LocationOn color="action" sx={{ mr: 1 }} />
               }}
-              error={!!errors.locationName}
-              helperText={errors.locationName?.message}
+              error={!!errors.location}
+              helperText={errors.location?.message}
               sx={{ mb: 3 }}
             />
           )}
@@ -244,16 +231,15 @@ const ReviewCreate: React.FC = () => {
           <Button
             variant="outlined"
             onClick={() => navigate('/reviews')}
-            disabled={isSubmitting}
           >
             취소
           </Button>
           <Button
             type="submit"
             variant="contained"
-            disabled={isSubmitting}
+            disabled={isLoading}
           >
-            {isSubmitting ? <CircularProgress size={24} /> : '등록'}
+            {isLoading ? <CircularProgress size={24} /> : '등록'}
           </Button>
         </Box>
       </Box>

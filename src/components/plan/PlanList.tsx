@@ -15,13 +15,13 @@ import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
 import { useAuth } from '../../hooks/useAuth';
-import planApi, { PlanListResponse } from '../../api/planApi';
+import planApi, { PlanResponse } from '../../api/planApi';
 
 const PlanList: React.FC = () => {
   const navigate = useNavigate();
   const { auth } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [plans, setPlans] = useState<PlanListResponse[]>([]);
+  const [plans, setPlans] = useState<PlanResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +32,7 @@ const PlanList: React.FC = () => {
         setError(null);
         if (auth.userId) {
           const response = await planApi.getMyPlans(auth.userId);
-          setPlans(response.data);
+          setPlans(response.data.data);
         }
       } catch (error: any) {
         console.error('Error fetching plans:', error);

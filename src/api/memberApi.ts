@@ -1,5 +1,6 @@
 // src/api/memberApi.ts
 import axiosInstance from './axiosInstance';
+import { ApiResponse } from '../types/api';
 
 export interface SignUpRequest {
   email: string;
@@ -10,10 +11,6 @@ export interface SignUpRequest {
 export interface LoginRequest {
   email: string;
   password: string;
-}
-
-export interface WithdrawalRequest {
-  reason: string;
 }
 
 export interface TokenResponse {
@@ -29,18 +26,18 @@ export interface MemberResponse {
 
 const memberApi = {
   signUp: (data: SignUpRequest) => 
-    axiosInstance.post<MemberResponse>('/members/signup', data),
+    axiosInstance.post<ApiResponse<MemberResponse>>('/members/signup', data),
 
   login: (data: LoginRequest) => 
-    axiosInstance.post<TokenResponse>('/auth/login', data),
+    axiosInstance.post<ApiResponse<TokenResponse>>('/auth/login', data),
 
-  withdraw: (userId: string, data: WithdrawalRequest) => 
-    axiosInstance.delete(`/members/${userId}`, { 
-      data 
+  withdraw: (userId: string, reason: string) => 
+    axiosInstance.delete<ApiResponse<void>>(`/members/${userId}`, { 
+      data: { reason } 
     }),
 
   logout: () => 
-    axiosInstance.post('/auth/logout')
+    axiosInstance.post<ApiResponse<void>>('/auth/logout')
 };
 
 export default memberApi;

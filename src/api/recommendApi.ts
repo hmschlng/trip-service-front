@@ -1,7 +1,8 @@
 // src/api/recommendApi.ts
 import axiosInstance from './axiosInstance';
+import { ApiResponse } from '../types/api';
 
-export interface PlaceListResponse {
+export interface PlaceResponse {
   placeId: string;
   name: string;
   description: string;
@@ -28,36 +29,33 @@ export interface PlaceDetailResponse {
     iconUrl: string;
     timestamp: number;
   };
+  nearbyPlaces: {
+    name: string;
+    description: string;
+    distance: number;
+  }[];
 }
 
-export interface RecommendationResponse {
-  placeId: string;
-  name: string;
-  category: string;
-  preferenceType: string;
-  matchingPercentage: number;
-}
-
-export interface PopularKeywordResponse {
+export interface KeywordsResponse {
   popularKeywords: string[];
   recommendedKeywords: string[];
 }
 
 const recommendApi = {
   getRecommendedPlaces: (keyword: string, userId?: string) => 
-    axiosInstance.get<PlaceListResponse[]>(`/recommendations/places?keyword=${keyword}${userId ? `&userId=${userId}` : ''}`),
+    axiosInstance.get<ApiResponse<PlaceResponse[]>>(`/recommendations/places?keyword=${keyword}${userId ? `&userId=${userId}` : ''}`),
 
-  getMoreRecommendedPlaces: (keyword: string, offset: number, limit: number, userId?: string) => 
-    axiosInstance.get<PlaceListResponse[]>(`/recommendations/places/more?keyword=${keyword}&offset=${offset}&limit=${limit}${userId ? `&userId=${userId}` : ''}`),
+  getMoreRecommendedPlaces: (keyword: string, offset: number = 0, limit: number = 5, userId?: string) => 
+    axiosInstance.get<ApiResponse<PlaceResponse[]>>(`/recommendations/places/more?keyword=${keyword}&offset=${offset}&limit=${limit}${userId ? `&userId=${userId}` : ''}`),
 
   getPlaceDetail: (placeId: string) => 
-    axiosInstance.get<PlaceDetailResponse>(`/recommendations/places/${placeId}`),
+    axiosInstance.get<ApiResponse<PlaceDetailResponse>>(`/recommendations/places/${placeId}`),
 
-  getRecommendationPage: (userId: string) => 
-    axiosInstance.get<RecommendationResponse[]>(`/recommendations?userId=${userId}`),
+  getRecommendations: (userId: string) => 
+    axiosInstance.get<ApiResponse<PlaceResponse[]>>(`/recommendations?userId=${userId}`),
     
-  getKeywords: () =>
-    axiosInstance.get<PopularKeywordResponse>('/recommendations/keywords')
+  getKeywords: () => 
+    axiosInstance.get<ApiResponse<KeywordsResponse>>(`/recommendations/keywords`)
 };
 
 export default recommendApi;

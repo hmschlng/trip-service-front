@@ -9,12 +9,19 @@ import {
   Autocomplete,
   Chip,
   Typography,
-  Alert,
   CircularProgress
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import planApi, { PlanCreateRequest } from '../../api/planApi';
-import { useAuth } from '../../hooks/useAuth';
+import { planApi } from '../../api';
+import { useSnackbar } from 'notistack';
+
+interface PlanFormInputs {
+  title: string;
+  startDate: string;
+  endDate: string;
+  companions: string[];
+  themes: string[];
+  estimatedBudget: number;
+}
 
 const THEME_OPTIONS = [
   '관광', '휴양', '맛집', '쇼핑', '액티비티', '문화예술', '자연'
@@ -22,54 +29,62 @@ const THEME_OPTIONS = [
 
 const PlanForm: React.FC = () => {
   const navigate = useNavigate();
-  const { auth } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const { control, handleSubmit, formState: { errors } } = useForm<PlanCreateRequest>({
-    defaultValues: {
-      userId: auth.userId || '',
-      companions: [],
-      themes: [],
-    }
-  });
+  const { enqueueSnackbar } = useSnackbar();
+  const [isLoading, setIsLoading] = useState(false);
+  const { control, handleSubmit, formState: { errors } } = useForm<PlanFormInputs>();
 
-  const onSubmit = async (data: PlanCreateRequest) => {
+  const onSubmit = async (data: PlanFormInputs) => {
     try {
-      setIsSubmitting(true);
-      setError(null);
-      await planApi.createPlan(data);
+      setIsLoading(true);
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        enqueueSnackbar('로그인이 필요합니다.', { variant: 'warning' });
+        navigate('/login');
+        return;
+      }
+      
+      const response = await planApi.createPlan({
+        ...data,
+        userId
+      });
+      
+      enqueueSnackbar('여행 플랜이 성공적으로 생성되었습니다!', { variant: 'success' });
       navigate('/plans');
-    } catch (error: any) {
-      console.error('Error creating plan:', error);
-      setError(error.response?.data?.message || '여행 플랜 생성에 실패했습니다.');
+    } catch (error) {
+      console.error('Plan creation error:', error);
+      enqueueSnackbar('여행 플랜 생성에 실패했습니다.', { variant: 'error' });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  const handleSaveDraft = async (data: PlanCreateRequest) => {
+  const handleSaveDraft = async (data: PlanFormInputs) => {
     try {
-      setIsSubmitting(true);
-      setError(null);
-      await planApi.saveDraft(data);
+      setIsLoading(true);
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        enqueueSnackbar('로그인이 필요합니다.', { variant: 'warning' });
+        navigate('/login');
+        return;
+      }
+      
+      const response = await planApi.createPlan({
+        ...data,
+        userId
+      });
+      
+      enqueueSnackbar('여행 플랜이 임시저장되었습니다.', { variant: 'success' });
       navigate('/plans');
-    } catch (error: any) {
-      console.error('Error saving draft:', error);
-      setError(error.response?.data?.message || '임시저장에 실패했습니다.');
+    } catch (error) {
+      console.error('Draft save error:', error);
+      enqueueSnackbar('임시저장에 실패했습니다.', { variant: 'error' });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 2 }}>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
       <Controller
         name="title"
         control={control}
@@ -92,17 +107,14 @@ const PlanForm: React.FC = () => {
           control={control}
           rules={{ required: '시작일을 선택해주세요' }}
           render={({ field }) => (
-            <DatePicker
+            <TextField
+              {...field}
+              fullWidth
               label="시작일"
-              value={field.value ? new Date(field.value) : null}
-              onChange={(date) => field.onChange(date?.toISOString().split('T')[0])}
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  error: !!errors.startDate,
-                  helperText: errors.startDate?.message
-                }
-              }}
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              error={!!errors.startDate}
+              helperText={errors.startDate?.message}
             />
           )}
         />
@@ -112,17 +124,14 @@ const PlanForm: React.FC = () => {
           control={control}
           rules={{ required: '종료일을 선택해주세요' }}
           render={({ field }) => (
-            <DatePicker
+            <TextField
+              {...field}
+              fullWidth
               label="종료일"
-              value={field.value ? new Date(field.value) : null}
-              onChange={(date) => field.onChange(date?.toISOString().split('T')[0])}
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  error: !!errors.endDate,
-                  helperText: errors.endDate?.message
-                }
-              }}
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              error={!!errors.endDate}
+              helperText={errors.endDate?.message}
             />
           )}
         />
@@ -131,6 +140,7 @@ const PlanForm: React.FC = () => {
       <Controller
         name="companions"
         control={control}
+        defaultValue={[]}
         render={({ field }) => (
           <Autocomplete
             multiple
@@ -161,6 +171,7 @@ const PlanForm: React.FC = () => {
       <Controller
         name="themes"
         control={control}
+        defaultValue={[]}
         rules={{ required: '여행 테마를 선택해주세요' }}
         render={({ field }) => (
           <Autocomplete
@@ -212,17 +223,17 @@ const PlanForm: React.FC = () => {
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
         <Button 
           variant="outlined" 
-          onClick={handleSubmit((data) => handleSaveDraft(data))}
-          disabled={isSubmitting}
+          onClick={handleSubmit(data => handleSaveDraft(data))}
+          disabled={isLoading}
         >
           임시저장
         </Button>
         <Button 
           type="submit" 
           variant="contained"
-          disabled={isSubmitting}
+          disabled={isLoading}
         >
-          {isSubmitting ? <CircularProgress size={24} /> : '저장'}
+          {isLoading ? <CircularProgress size={24} /> : '저장'}
         </Button>
       </Box>
     </Box>

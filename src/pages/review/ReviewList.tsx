@@ -16,47 +16,46 @@ import {
 import { Add as AddIcon, Search as SearchIcon } from '@mui/icons-material';
 import PageContainer from '../../components/common/PageContainer';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import ErrorMessage from '../../components/common/ErrorMessage';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { format } from 'date-fns';
-import { useAuth } from '../../hooks/useAuth';
-import reviewApi, { ReviewListResponse } from '../../api/reviewApi';
+import { reviewApi } from '../../api';
+import { ReviewResponse } from '../../api/reviewApi';
+import { useSnackbar } from 'notistack';
 
 const ReviewList: React.FC = () => {
   const navigate = useNavigate();
-  const { auth } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [searchQuery, setSearchQuery] = useState('');
-  const [reviews, setReviews] = useState<ReviewListResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [reviews, setReviews] = useState<ReviewResponse[]>([]);
 
   useEffect(() => {
     const fetchReviews = async () => {
-      if (!auth.userId) return;
-      
       try {
         setIsLoading(true);
-        setError(null);
-        const response = await reviewApi.getMyReviews(auth.userId);
-        setReviews(response.data);
-      } catch (error: any) {
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+          enqueueSnackbar('로그인이 필요합니다.', { variant: 'warning' });
+          navigate('/login');
+          return;
+        }
+        
+        const response = await reviewApi.getMyReviews(userId);
+        setReviews(response.data.data || []);
+      } catch (error) {
         console.error('Error fetching reviews:', error);
-        setError(error.response?.data?.message || '후기 목록을 불러오는 데 실패했습니다.');
+        enqueueSnackbar('여행 후기를 불러오는데 실패했습니다.', { variant: 'error' });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchReviews();
-  }, [auth.userId]);
-
-  const handleSearch = () => {
-    // TODO: 검색 기능 구현
-    console.log('Search for:', searchQuery);
-  };
+  }, [navigate, enqueueSnackbar]);
 
   const loadMore = () => {
-    // TODO: 무한 스크롤 또는 페이지네이션 구현
+    // 페이지네이션 구현이 필요하다면 여기에 추가
+    console.log('Load more reviews');
   };
 
   const observerRef = useInfiniteScroll({
@@ -64,7 +63,10 @@ const ReviewList: React.FC = () => {
     enabled: !isLoading
   });
 
-  if (error) return <ErrorMessage message={error} />;
+  const filteredReviews = reviews.filter(review => 
+    review.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    review.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <PageContainer>
@@ -74,7 +76,6 @@ const ReviewList: React.FC = () => {
           placeholder="후기 검색"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -87,22 +88,27 @@ const ReviewList: React.FC = () => {
 
       {isLoading ? (
         <LoadingSpinner />
-      ) : reviews.length > 0 ? (
-        reviews.map((review) => (
+      ) : filteredReviews.length > 0 ? (
+        filteredReviews.map((review) => (
           <Card sx={{ mb: 2 }} key={review.reviewId}>
             <CardActionArea onClick={() => navigate(`/reviews/${review.reviewId}`)}>
               <CardMedia
                 component="img"
                 height="140"
-                image="/images/placeholder.jpg"
+                image={review.imageUrls && review.imageUrls.length > 0 ? review.imageUrls[0] : '/images/placeholder.jpg'}
                 alt="여행 후기 이미지"
               />
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   {review.title}
                 </Typography>
+                <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                  {review.locationInfo && Object.keys(review.locationInfo).map((key) => (
+                    <Chip key={key} label={review.locationInfo[key]} size="small" />
+                  ))}
+                </Box>
                 <Typography variant="body2" color="text.secondary">
-                  {format(new Date(review.createdAt), 'yyyy.MM.dd')}
+                  {review.createdAt ? format(new Date(review.createdAt), 'yyyy.MM.dd') : ''}
                 </Typography>
               </CardContent>
             </CardActionArea>
@@ -114,6 +120,7 @@ const ReviewList: React.FC = () => {
         </Typography>
       )}
 
+      {isLoading && <LoadingSpinner />}
       <div ref={observerRef} />
 
       <Fab

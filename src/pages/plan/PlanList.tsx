@@ -7,6 +7,7 @@ import {
   Fab,
   TextField,
   InputAdornment,
+  CircularProgress
 } from '@mui/material';
 import { Add as AddIcon, Search as SearchIcon } from '@mui/icons-material';
 import PageContainer from '../../components/common/PageContainer';
@@ -15,28 +16,30 @@ import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
 import { useAuth } from '../../hooks/useAuth';
-import planApi, { PlanListResponse } from '../../api/planApi';
+import planApi, { PlanResponse } from '../../api/planApi';
+import { extractResponseData, extractErrorMessage } from '../../utils/apiUtils';
 
 const PlanList: React.FC = () => {
   const navigate = useNavigate();
   const { auth } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [plans, setPlans] = useState<PlanListResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [plans, setPlans] = useState<PlanResponse[]>([]);
 
   useEffect(() => {
     const fetchPlans = async () => {
+      if (!auth.userId) return;
+      
       try {
         setIsLoading(true);
         setError(null);
-        if (auth.userId) {
-          const response = await planApi.getMyPlans(auth.userId);
-          setPlans(response);
-        }
+        
+        const response = await planApi.getMyPlans(auth.userId);
+        setPlans(extractResponseData(response));
       } catch (error: any) {
         console.error('Error fetching plans:', error);
-        setError(error.response?.data?.message || '여행 플랜을 불러오는 데 실패했습니다.');
+        setError(extractErrorMessage(error));
       } finally {
         setIsLoading(false);
       }
@@ -45,14 +48,9 @@ const PlanList: React.FC = () => {
     fetchPlans();
   }, [auth.userId]);
 
-  // TODO: 검색 기능 구현
-  const handleSearch = () => {
-    console.log('Search for:', searchQuery);
-  };
-
-  // 무한 스크롤 구현 (향후 페이지네이션 구현 시)
   const loadMore = () => {
-    // 페이지네이션 또는 무한 스크롤 구현
+    // 페이지네이션 구현이 필요하다면 여기에 추가
+    console.log('Load more plans');
   };
 
   const observerRef = useInfiniteScroll({
@@ -60,7 +58,9 @@ const PlanList: React.FC = () => {
     enabled: !isLoading
   });
 
-  if (error) return <ErrorMessage message={error} />;
+  const filteredPlans = plans.filter(plan => 
+    plan.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <PageContainer>
@@ -70,7 +70,6 @@ const PlanList: React.FC = () => {
           placeholder="여행 제목 검색"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -84,15 +83,17 @@ const PlanList: React.FC = () => {
       <Box sx={{ mb: 8 }}>
         {isLoading ? (
           <LoadingSpinner />
-        ) : plans.length > 0 ? (
-          plans.map((plan) => (
+        ) : error ? (
+          <ErrorMessage message={error} />
+        ) : filteredPlans.length > 0 ? (
+          filteredPlans.map((plan) => (
             <PlanListItem
               key={plan.planId}
               planId={plan.planId}
               title={plan.title}
               startDate={plan.startDate}
               endDate={plan.endDate}
-              themes={plan.themes}
+              themes={plan.themes || []}
               createdAt={plan.createdAt}
             />
           ))
@@ -103,6 +104,7 @@ const PlanList: React.FC = () => {
         )}
       </Box>
 
+      {isLoading && <LoadingSpinner />}
       <div ref={observerRef} />
 
       <Fab
