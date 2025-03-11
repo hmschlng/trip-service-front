@@ -1,6 +1,7 @@
 // src/api/planApi.ts
 import axiosInstance from './axiosInstance';
 import { ApiResponse } from '../types/api';
+import { Page } from '../types/api';
 
 export interface PlanCreateRequest {
   title: string;
@@ -36,22 +37,22 @@ export interface TimelineItem {
 
 const planApi = {
   getMyPlans: (userId: string) => 
-    axiosInstance.get<ApiResponse<PlanResponse[]>>(`/plans/my-plans?userId=${userId}`),
+    axiosInstance.get<ApiResponse<Page<PlanResponse>>>(`/api/plans/my-plans?userId=${userId}`),
 
   getPlan: (planId: string, userId: string) => 
-    axiosInstance.get<ApiResponse<PlanResponse>>(`/plans/${planId}?userId=${userId}`),
+    axiosInstance.get<ApiResponse<PlanResponse>>(`/api/plans/${planId}?userId=${userId}`),
     
   getPlanDetail: (planId: string, userId: string) => 
-    axiosInstance.get<ApiResponse<PlanResponse>>(`/plans/${planId}?userId=${userId}`),
+    axiosInstance.get<ApiResponse<PlanResponse>>(`/api/plans/${planId}?userId=${userId}`),
 
   createPlan: (data: PlanCreateRequest) => 
-    axiosInstance.post<ApiResponse<PlanResponse>>('/plans', data),
+    axiosInstance.post<ApiResponse<PlanResponse>>('/api/plans', data),
 
   updatePlan: (planId: string, data: PlanCreateRequest) => 
-    axiosInstance.put<ApiResponse<PlanResponse>>(`/plans/${planId}`, data),
+    axiosInstance.put<ApiResponse<PlanResponse>>(`/api/plans/${planId}`, data),
 
   deletePlan: (planId: string) => 
-    axiosInstance.delete<ApiResponse<void>>(`/plans/${planId}`)
+    axiosInstance.delete<ApiResponse<void>>(`/api/plans/${planId}`)
 };
 
 export default planApi;

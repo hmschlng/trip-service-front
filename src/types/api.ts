@@ -16,6 +16,19 @@ export interface PaginatedResponse<T> {
   empty: boolean;
 }
 
+export interface Page<T> {
+  content: T[];
+  pageable: Pageable;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  first: boolean;
+  size: number;
+  number: number;
+  numberOfElements: number;
+  empty: boolean;
+}
+
 export interface Pageable {
   pageNumber: number;
   pageSize: number;

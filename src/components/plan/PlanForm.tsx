@@ -43,9 +43,22 @@ const PlanForm: React.FC = () => {
         return;
       }
       
+      console.log("서버로 보내는 데이터:", {
+        ...data,
+        userId,
+        // 날짜가 올바른 형식인지 확인
+        startDate: data.startDate,
+        endDate: data.endDate,
+        // 예산이 숫자인지 확인
+        estimatedBudget: Number(data.estimatedBudget)
+      });
+
       const response = await planApi.createPlan({
         ...data,
-        userId
+        userId,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      estimatedBudget: Number(data.estimatedBudget)
       });
       
       enqueueSnackbar('여행 플랜이 성공적으로 생성되었습니다!', { variant: 'success' });

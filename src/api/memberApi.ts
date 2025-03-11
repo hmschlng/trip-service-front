@@ -26,18 +26,18 @@ export interface MemberResponse {
 
 const memberApi = {
   signUp: (data: SignUpRequest) => 
-    axiosInstance.post<ApiResponse<MemberResponse>>('/members/signup', data),
+    axiosInstance.post<ApiResponse<MemberResponse>>('/api/members/signup', data),
 
   login: (data: LoginRequest) => 
-    axiosInstance.post<ApiResponse<TokenResponse>>('/auth/login', data),
+    axiosInstance.post<ApiResponse<TokenResponse>>('/api/auth/login', data),
 
   withdraw: (userId: string, reason: string) => 
-    axiosInstance.delete<ApiResponse<void>>(`/members/${userId}`, { 
+    axiosInstance.delete<ApiResponse<void>>(`/api/members/${userId}`, { 
       data: { reason } 
     }),
 
   logout: () => 
-    axiosInstance.post<ApiResponse<void>>('/auth/logout')
+    axiosInstance.post<ApiResponse<void>>('/api/auth/logout')
 };
 
 export default memberApi;

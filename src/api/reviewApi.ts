@@ -25,35 +25,35 @@ export interface ReviewResponse {
 
 const reviewApi = {
   getReviewByPlan: (planId: string) => 
-    axiosInstance.get<ApiResponse<ReviewResponse>>(`/reviews/plan/${planId}`),
+    axiosInstance.get<ApiResponse<ReviewResponse>>(`/api/reviews/plan/${planId}`),
 
   getMyReviews: (userId: string) => 
-    axiosInstance.get<ApiResponse<ReviewResponse[]>>(`/reviews/my-reviews?userId=${userId}`),
+    axiosInstance.get<ApiResponse<ReviewResponse[]>>(`/api/reviews/my-reviews?userId=${userId}`),
 
   getReview: (reviewId: string) => 
-    axiosInstance.get<ApiResponse<ReviewResponse>>(`/reviews/${reviewId}`),
+    axiosInstance.get<ApiResponse<ReviewResponse>>(`/api/reviews/${reviewId}`),
     
   getReviewDetail: (reviewId: string) => 
-    axiosInstance.get<ApiResponse<ReviewResponse>>(`/reviews/${reviewId}`),
+    axiosInstance.get<ApiResponse<ReviewResponse>>(`/api/reviews/${reviewId}`),
 
   createReview: (data: ReviewCreateRequest) => 
-    axiosInstance.post<ApiResponse<ReviewResponse>>('/reviews', data),
+    axiosInstance.post<ApiResponse<ReviewResponse>>('/api/reviews', data),
 
   updateReview: (reviewId: string, data: ReviewCreateRequest) => 
-    axiosInstance.put<ApiResponse<ReviewResponse>>(`/reviews/${reviewId}`, data),
+    axiosInstance.put<ApiResponse<ReviewResponse>>(`/api/reviews/${reviewId}`, data),
 
   deleteReview: (reviewId: string) => 
-    axiosInstance.delete<ApiResponse<void>>(`/reviews/${reviewId}`),
+    axiosInstance.delete<ApiResponse<void>>(`/api/reviews/${reviewId}`),
 
   uploadImages: (file: FormData) => 
-    axiosInstance.post<ApiResponse<string[]>>('/images', file, {
+    axiosInstance.post<ApiResponse<string[]>>('/api/images', file, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     }),
     
   uploadMultipleImages: (files: FormData) => 
-    axiosInstance.post<ApiResponse<string[]>>('/images/multiple', files, {
+    axiosInstance.post<ApiResponse<string[]>>('/api/images/multiple', files, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

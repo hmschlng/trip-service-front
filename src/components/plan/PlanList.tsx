@@ -27,12 +27,28 @@ const PlanList: React.FC = () => {
 
   useEffect(() => {
     const fetchPlans = async () => {
+      if (!auth.userId) return;
+      
       try {
         setIsLoading(true);
         setError(null);
-        if (auth.userId) {
-          const response = await planApi.getMyPlans(auth.userId);
-          setPlans(response.data.data);
+        
+        // userId 파라미터를 명시적으로 전달
+        const response = await planApi.getMyPlans(auth.userId);
+        console.log('API Response:', response); // 응답 데이터 확인
+        
+        // 응답 구조 확인 - Page 객체일 경우 content 배열을 추출
+        const responseData = response.data.data;
+        
+        // Page 객체인 경우 (content 필드가 있는지 확인)
+        if (responseData.content) {
+          setPlans(responseData.content || []);
+        } else if (Array.isArray(responseData)) {
+          // 단순 배열인 경우
+          setPlans(responseData);
+        } else {
+          // 기타 경우는 빈 배열로 초기화
+          setPlans([]);
         }
       } catch (error: any) {
         console.error('Error fetching plans:', error);

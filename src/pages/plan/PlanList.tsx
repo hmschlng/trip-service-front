@@ -26,7 +26,7 @@ const PlanList: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plans, setPlans] = useState<PlanResponse[]>([]);
-
+  
   useEffect(() => {
     const fetchPlans = async () => {
       if (!auth.userId) return;
@@ -36,10 +36,20 @@ const PlanList: React.FC = () => {
         setError(null);
         
         const response = await planApi.getMyPlans(auth.userId);
-        setPlans(extractResponseData(response));
+        console.log('API Response:', response); // 응답 데이터 확인
+        
+        // 페이지네이션된 응답 처리
+        const responseData = response.data.data;
+        
+        // content 배열에서 플랜 데이터 추출
+        if (responseData.content) {
+          setPlans(responseData.content);
+        } else {
+          setPlans([]);
+        }
       } catch (error: any) {
         console.error('Error fetching plans:', error);
-        setError(extractErrorMessage(error));
+        setError(error.response?.data?.message || '여행 플랜을 불러오는 데 실패했습니다.');
       } finally {
         setIsLoading(false);
       }
@@ -58,9 +68,9 @@ const PlanList: React.FC = () => {
     enabled: !isLoading
   });
 
-  const filteredPlans = plans.filter(plan => 
-    plan.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPlans = Array.isArray(plans) 
+  ? plans.filter(plan => plan.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  : [];
 
   return (
     <PageContainer>

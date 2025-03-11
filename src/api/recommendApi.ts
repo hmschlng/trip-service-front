@@ -43,19 +43,19 @@ export interface KeywordsResponse {
 
 const recommendApi = {
   getRecommendedPlaces: (keyword: string, userId?: string) => 
-    axiosInstance.get<ApiResponse<PlaceResponse[]>>(`/recommendations/places?keyword=${keyword}${userId ? `&userId=${userId}` : ''}`),
+    axiosInstance.get<ApiResponse<PlaceResponse[]>>(`/api/recommendations/places?keyword=${keyword}${userId ? `&userId=${userId}` : ''}`),
 
   getMoreRecommendedPlaces: (keyword: string, offset: number = 0, limit: number = 5, userId?: string) => 
-    axiosInstance.get<ApiResponse<PlaceResponse[]>>(`/recommendations/places/more?keyword=${keyword}&offset=${offset}&limit=${limit}${userId ? `&userId=${userId}` : ''}`),
+    axiosInstance.get<ApiResponse<PlaceResponse[]>>(`/api/recommendations/places/more?keyword=${keyword}&offset=${offset}&limit=${limit}${userId ? `&userId=${userId}` : ''}`),
 
   getPlaceDetail: (placeId: string) => 
-    axiosInstance.get<ApiResponse<PlaceDetailResponse>>(`/recommendations/places/${placeId}`),
+    axiosInstance.get<ApiResponse<PlaceDetailResponse>>(`/api/recommendations/places/${placeId}`),
 
   getRecommendations: (userId: string) => 
-    axiosInstance.get<ApiResponse<PlaceResponse[]>>(`/recommendations?userId=${userId}`),
+    axiosInstance.get<ApiResponse<PlaceResponse[]>>(`/api/recommendations?userId=${userId}`),
     
   getKeywords: () => 
-    axiosInstance.get<ApiResponse<KeywordsResponse>>(`/recommendations/keywords`)
+    axiosInstance.get<ApiResponse<KeywordsResponse>>(`/api/recommendations/keywords`)
 };
 
 export default recommendApi;

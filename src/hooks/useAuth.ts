@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { memberApi } from '../api';
 import { useSnackbar } from 'notistack';
+import { decodeToken } from '../utils/jwtUtils';
 
 interface AuthState {
   token: string | null;
@@ -39,10 +40,19 @@ export const useAuth = (): UseAuthReturnType => {
       const response = await memberApi.login({ email, password });
       const { accessToken, refreshToken } = response.data.data;
       
-      // 실제로는 토큰에서 userId를 추출하거나 API에서 받아와야 함
-      // 여기서는 테스트를 위해 email을 userId로 사용
-      const userId = email;
+      // JWT 토큰에서 userId 추출
+      const decodedToken = decodeToken(accessToken);
+      const userId = decodedToken.userId || null;
       
+      console.log("userId: ", userId);
+
+      if (!userId) {
+        console.error('Could not extract userId from token');
+        enqueueSnackbar('토큰에서 사용자 정보를 가져올 수 없습니다.', { variant: 'error' });
+        return false;
+      }
+      
+      // 토큰과 userId 저장
       localStorage.setItem('token', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('userId', userId);
@@ -73,12 +83,28 @@ export const useAuth = (): UseAuthReturnType => {
     const userId = localStorage.getItem('userId');
     
     if (token && userId) {
-      setAuth({ token, userId, isAuthenticated: true });
-      return true;
+      // 토큰의 유효성 검사 추가
+      const decodedToken = decodeToken(token);
+      if (decodedToken && !isTokenExpired(decodedToken)) {
+        setAuth({ token, userId, isAuthenticated: true });
+        return true;
+      } else {
+        // 토큰이 만료되었거나 유효하지 않은 경우 로그아웃 처리
+        logout();
+        return false;
+      }
     }
     
     setAuth({ token: null, userId: null, isAuthenticated: false });
     return false;
+  };
+
+  // 토큰 만료 확인 함수
+  const isTokenExpired = (decodedToken: any): boolean => {
+    if (!decodedToken.exp) return true;
+    
+    const currentTime = Math.floor(Date.now() / 1000);
+    return decodedToken.exp < currentTime;
   };
 
   return {

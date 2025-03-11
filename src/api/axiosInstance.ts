@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { isTokenExpired } from '../utils/jwtUtils';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -10,6 +10,7 @@ const axiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 5000, // 5초
+  withCredentials: true,
 });
 
 axiosInstance.interceptors.request.use(
