@@ -7,12 +7,14 @@ import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import PlanList from './pages/plan/PlanList';
 import PlanCreate from './pages/plan/PlanCreate';
+import PlanDetail from './pages/plan/PlanDetail';
 import RecommendList from './pages/recommend/RecommendList';
 import RecommendDetail from './pages/recommend/RecommendDetail';
 import ReviewList from './pages/review/ReviewList';
 import ReviewDetail from './pages/review/ReviewDetail';
 import ReviewCreate from './pages/review/ReviewCreate';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import PlanEdit from './pages/plan/PlanEdit';
 
 const Router: React.FC = () => {
   return (
@@ -35,6 +37,11 @@ const Router: React.FC = () => {
             <PlanCreate />
           </ProtectedRoute>
         } />
+        <Route path="/plans/:planId" element={
+          <ProtectedRoute>
+            <PlanDetail />
+          </ProtectedRoute>
+        } />
         <Route path="/recommendations" element={
           <ProtectedRoute>
             <RecommendList />
@@ -43,6 +50,11 @@ const Router: React.FC = () => {
         <Route path="/recommendations/:placeId" element={
           <ProtectedRoute>
             <RecommendDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/plans/edit/:planId" element={
+          <ProtectedRoute>
+            <PlanEdit />
           </ProtectedRoute>
         } />
         <Route path="/reviews" element={

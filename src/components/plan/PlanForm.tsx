@@ -23,17 +23,32 @@ interface PlanFormInputs {
   estimatedBudget: number;
 }
 
+interface PlanFormProps {
+  initialData?: PlanFormInputs;
+  onSubmit?: (data: PlanFormInputs) => Promise<void>;
+  isEdit?: boolean;
+}
+
 const THEME_OPTIONS = [
   '관광', '휴양', '맛집', '쇼핑', '액티비티', '문화예술', '자연'
 ];
 
-const PlanForm: React.FC = () => {
+const PlanForm: React.FC<PlanFormProps> = ({ initialData, onSubmit, isEdit = false }) => {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const [isLoading, setIsLoading] = useState(false);
-  const { control, handleSubmit, formState: { errors } } = useForm<PlanFormInputs>();
+  const { control, handleSubmit, formState: { errors } } = useForm<PlanFormInputs>({
+    defaultValues: initialData || {
+      title: '',
+      startDate: '',
+      endDate: '',
+      companions: [],
+      themes: [],
+      estimatedBudget: 0
+    }
+  });
 
-  const onSubmit = async (data: PlanFormInputs) => {
+  const handleFormSubmit = async (data: PlanFormInputs) => {
     try {
       setIsLoading(true);
       const userId = localStorage.getItem('userId');
@@ -43,13 +58,20 @@ const PlanForm: React.FC = () => {
         return;
       }
       
+      // 커스텀 onSubmit이 제공된 경우 사용
+      if (onSubmit) {
+        await onSubmit({
+          ...data,
+          estimatedBudget: Number(data.estimatedBudget)
+        });
+        return;
+      }
+      
       console.log("서버로 보내는 데이터:", {
         ...data,
         userId,
-        // 날짜가 올바른 형식인지 확인
         startDate: data.startDate,
         endDate: data.endDate,
-        // 예산이 숫자인지 확인
         estimatedBudget: Number(data.estimatedBudget)
       });
 
@@ -97,7 +119,7 @@ const PlanForm: React.FC = () => {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 2 }}>
+    <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} sx={{ mt: 2 }}>
       <Controller
         name="title"
         control={control}
@@ -234,19 +256,22 @@ const PlanForm: React.FC = () => {
       />
 
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-        <Button 
-          variant="outlined" 
-          onClick={handleSubmit(data => handleSaveDraft(data))}
-          disabled={isLoading}
-        >
-          임시저장
-        </Button>
+        {/* 수정 모드일 때는 임시저장 버튼 숨김 */}
+        {!isEdit && (
+          <Button 
+            variant="outlined" 
+            onClick={handleSubmit(data => handleSaveDraft(data))}
+            disabled={isLoading}
+          >
+            임시저장
+          </Button>
+        )}
         <Button 
           type="submit" 
           variant="contained"
           disabled={isLoading}
         >
-          {isLoading ? <CircularProgress size={24} /> : '저장'}
+          {isLoading ? <CircularProgress size={24} /> : isEdit ? '수정' : '저장'}
         </Button>
       </Box>
     </Box>

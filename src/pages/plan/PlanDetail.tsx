@@ -1,6 +1,6 @@
 // src/pages/plan/PlanDetail.tsx
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Box, Tab, Tabs, Typography } from '@mui/material';
 import PageContainer from '../../components/common/PageContainer';
 import PlanDetail from '../../components/plan/PlanDetail';
@@ -14,11 +14,25 @@ import { extractResponseData, extractErrorMessage } from '../../utils/apiUtils';
 const PlanDetailPage: React.FC = () => {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { auth } = useAuth();
   const [value, setValue] = React.useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<PlanResponse | null>(null);
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refreshData = () => {
+    setRefreshKey(prevKey => prevKey + 1);
+  };
+
+  useEffect(() => {
+    // 수정 페이지에서 돌아올 때 데이터 새로고침
+    if (location.state?.refresh) {
+      refreshData();
+    }
+  }, [location]);
 
   useEffect(() => {
     const fetchPlanDetail = async () => {
@@ -38,7 +52,7 @@ const PlanDetailPage: React.FC = () => {
     };
 
     fetchPlanDetail();
-  }, [planId, auth.userId]);
+  }, [planId, auth.userId, refreshKey]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;

@@ -49,7 +49,7 @@ const planApi = {
     axiosInstance.post<ApiResponse<PlanResponse>>('/api/plans', data),
 
   updatePlan: (planId: string, data: PlanCreateRequest) => 
-    axiosInstance.put<ApiResponse<PlanResponse>>(`/api/plans/${planId}`, data),
+    axiosInstance.put<ApiResponse<any>>(`/api/plans/${planId}`, data),
 
   deletePlan: (planId: string) => 
     axiosInstance.delete<ApiResponse<void>>(`/api/plans/${planId}`)
