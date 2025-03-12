@@ -1,6 +1,6 @@
 // src/api/reviewApi.ts
 import axiosInstance from './axiosInstance';
-import { ApiResponse } from '../types/api';
+import { ApiResponse, Page } from '../types/api';
 
 export interface ReviewCreateRequest {
   planId: string;
@@ -28,7 +28,7 @@ const reviewApi = {
     axiosInstance.get<ApiResponse<ReviewResponse>>(`/api/reviews/plan/${planId}`),
 
   getMyReviews: (userId: string) => 
-    axiosInstance.get<ApiResponse<ReviewResponse[]>>(`/api/reviews/my-reviews?userId=${userId}`),
+    axiosInstance.get<ApiResponse<Page<ReviewResponse>>>(`/api/reviews/my-reviews?userId=${userId}`),
 
   getReview: (reviewId: string) => 
     axiosInstance.get<ApiResponse<ReviewResponse>>(`/api/reviews/${reviewId}`),
